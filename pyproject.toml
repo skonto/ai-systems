@@ -1,0 +1,19 @@
+[project]
+name = "qa-bot"
+version = "0.1.0"
+description = "QA asisstant for Openshift Serverless and Knative"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "chromadb>=0.5.23",
+    "langchain-chroma>=0.1.4",
+    "langchain-core>=0.3.28",
+    "langchain-experimental>=0.3.4",
+    "langchain-ollama>=0.2.2",
+    "langchain>=0.3.13",
+    "ollama>=0.4.4",
+    "pymupdf4llm>=0.0.17",
+    "pypdf>=5.1.0",
+    "sentence-transformers>=3.3.1",
+    "streamlit>=1.41.1",
+]
