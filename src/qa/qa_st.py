@@ -1,6 +1,7 @@
 '''Streamlit application that implements a QA bot.'''
 
 import argparse
+import logging
 import os
 import ollama
 import streamlit as st
@@ -13,6 +14,11 @@ from PIL import Image
 if "message_list" not in st.session_state:
     st.session_state.message_list = []
 
+logging.basicConfig(level=logging.WARNING)
+st_logger = logging.getLogger('streamlit')
+st_logger.setLevel(logging.WARNING)
+logger = logging.getLogger("qa")
+logger.setLevel(logging.DEBUG)
 
 def main():
     parser = argparse.ArgumentParser(
@@ -42,7 +48,7 @@ def main():
         persist_directory=db_path,
     )
 
-    st.title("Openshift Serverless - Q&A Assistant")
+    st.title("Fantastic Charge - Q&A Assistant")
     st.divider()
     path_logo = os.path.dirname(os.path.abspath(__file__)) + "/logo.png"
     im = Image.open(path_logo)
@@ -80,8 +86,8 @@ def main():
                 #     print(f'Page: {doc.page_content}\n-------\n')
                 #     dout += doc.page_content
                 for doc in docs:
-                    print(f"Chunk Score: {doc[1]}\n-------\n")
-                    print(f"Chunk: {doc[0].page_content}\n-------\n")
+                    logger.debug(f"Chunk Score: {doc[1]}\n-------\n")
+                    logger.debug(f"Chunk: {doc[0].page_content}\n-------\n")
                     retrieved_context += doc[0].page_content
 
             msgs = st.session_state.message_list
@@ -159,3 +165,12 @@ def format_prompt(question, context, history):
 
 if __name__ == "__main__":
     main()
+
+
+# from guardrails.hub import DetectJailbreak
+#from guardrails import Guard
+
+# Setup Guard
+#guard = Guard().use(
+#    DetectJailbreak
+#)

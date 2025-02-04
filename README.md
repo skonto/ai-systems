@@ -14,17 +14,18 @@ ollama pull llama3:instruct
 olllama pull mxbai-embed-large
 
 # Ingest txt Q&A data in Chroma DB
-uv run src/data/faq_ingest.py ./data/serverless/faq.txt /tmp/ch_db
+uv run src/data/qa_ingest.py ./data/serverless/qa.txt /tmp/ch_db
 
 # Run teh Chat Streamlit app
 source .venv/bin/activate
 
-python -m streamlit run ./src/data/faq_st.py
+python -m streamlit run ./src/qa/qa_st.py
 
-# Alternativelly:
+# Alternatively:
 
-uv run python -m streamlit run ./src/data/faq_st.py
+uv run python -m streamlit run ./src/qa/qa_st.py
 ```
 
-# Intaracting with the Q&A Assistant
+# Interacting with the Q&A Assistant
 
+![ui](./ui.png)
