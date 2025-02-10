@@ -11,8 +11,11 @@ from langchain_ollama import OllamaEmbeddings
 from langchain_chroma import Chroma
 from PIL import Image
 
-if "message_list" not in st.session_state:
-    st.session_state.message_list = []
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+    
+if "qas" not in st.session_state: 
+    st.session_state.qas = []
 
 logging.basicConfig(level=logging.WARNING)
 st_logger = logging.getLogger('streamlit')
@@ -53,23 +56,23 @@ def main():
     path_logo = os.path.dirname(os.path.abspath(__file__)) + "/logo.png"
     im = Image.open(path_logo)
     im = im.resize((50, 50))
+
     with st.chat_message("assistant", avatar=im):
         st.write("Hello! How can I help?")
 
     question = st.chat_input("Ask a question")
 
-    for l in st.session_state.message_list:
-        if "user" in l:
+    for msg in st.session_state.messages:
+        if "user" in msg:
             with st.chat_message("user"):
-                st.write(l["user"])
-        if "assistant" in l:
+                st.write(msg["user"])
+        if "assistant" in msg:
             with st.chat_message("assistant", avatar=im):
-                st.write(l["assistant"])
+                st.write(msg["assistant"])
 
     if question:
         with st.spinner("Processing…"):
             retrieved_context = ""
-            history = ""
             empty = False
             if is_collection_empty(vector_store):
                 print("I have no data")
@@ -78,23 +81,15 @@ def main():
             docs = []
 
             if not empty:
-                # docs = vector_store.similarity_search(f"{prompt}", k=1)
                 docs = vector_store.similarity_search_with_relevance_scores(
-                    f"{question}", k=1, score_threshold=0.4
+                    f"{question}", k=2, score_threshold=0.4
                 )
-                # for doc in docs:
-                #     print(f'Page: {doc.page_content}\n-------\n')
-                #     dout += doc.page_content
                 for doc in docs:
-                    logger.debug(f"Chunk Score: {doc[1]}\n-------\n")
+                    logger.debug(f"Chunk Score: {doc[1]}\n")
                     logger.debug(f"Chunk: {doc[0].page_content}\n-------\n")
                     retrieved_context += doc[0].page_content
 
-            msgs = st.session_state.message_list
-            # Only add the last msg
-            if len(msgs) > 0:
-                pop = msgs[-1]
-                history = "\n user:" + pop["user"] + "\nassistant: " + pop["assistant"]
+            qas = st.session_state.qas
 
             response = ""
 
@@ -106,12 +101,16 @@ def main():
                 print(e)
                 response = "Your question is toxic pls try again"
 
-            llama_prompt = format_prompt(question=question, context=retrieved_context, history=history)
+            llama_prompt = format_prompt(question=question, context=retrieved_context)
+
+            qas = qas + [ {'role': 'user', 'content': llama_prompt} ]
+
+            print(qas)
 
             if response != "Your question is toxic pls try again":
                 print(llama_prompt + "\n")
-                output = ollama.generate(model="llama3:instruct", prompt=llama_prompt)
-                response = output["response"]
+                output = ollama.chat(model="llama3:instruct", messages=qas)
+                response = output["message"]["content"]
 
             with st.chat_message("user"):
                 st.write(question)
@@ -119,10 +118,10 @@ def main():
                 out = str(response)
                 st.write(out)
 
+            st.session_state.qas.append( {'role': 'user', 'content': llama_prompt})
+            st.session_state.qas.append( {'role': 'assistant', 'content': response})
             a = {"user": question, "assistant": str(response)}
-
-            st.session_state.message_list.append(a)
-
+            st.session_state.messages.append(a)
 
 def is_collection_empty(vector_store):
     """
@@ -139,7 +138,7 @@ def is_collection_empty(vector_store):
     return len(docs) == 0
 
 
-def format_prompt(question, context, history):
+def format_prompt(question, context):
     """
     Formats the prompt according to RAG and history.
 
@@ -153,24 +152,13 @@ def format_prompt(question, context, history):
     """
 
     inject = ""
-    if context != "" and history != "":
-        inject = f"the context: {context} and the history chat: {history}"
-    elif context == "" and history != "":
-        inject = f"the history chat: {history}"
-    elif context != "" and history == "":
+    if context != "":
         inject = f"the context: {context}"
 
-    return f"You are an assistant that answers questions from a user. Given {inject}. Answer the question: {question}. Be concise."
+    p = "You are an assistant that answers questions from a user."
+
+    return p + f"Given {inject}. Answer the question: {question}. Be concise."
 
 
 if __name__ == "__main__":
     main()
-
-
-# from guardrails.hub import DetectJailbreak
-#from guardrails import Guard
-
-# Setup Guard
-#guard = Guard().use(
-#    DetectJailbreak
-#)
