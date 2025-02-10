@@ -3,7 +3,7 @@
 
 
 ```
-# Download QA data in txt format under some path eg. data/serverless
+# Download QA data in txt format under some path eg. data/fantastic_charge
 # Save in a file named qa.txt.
 
 Disclaimer: The sample data in this repo are generated automatically by an LLM for a fictional product and meant to have no relation with an existing product. Any resemblance is purely coincidental.
@@ -13,7 +13,7 @@ ollama pull llama3:instruct
 olllama pull mxbai-embed-large
 
 # Ingest txt Q&A data in Chroma DB
-uv run src/data/qa_ingest.py ./data/serverless/qa.txt /tmp/ch_db
+uv run src/data/qa_ingest.py ./data/fantastic_charge/qa.txt /tmp/ch_db
 
 # Run the Chat Streamlit app
 source .venv/bin/activate

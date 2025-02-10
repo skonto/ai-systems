@@ -1,10 +1,11 @@
 [project]
 name = "qa-bot"
 version = "0.1.0"
-description = "QA asisstant for Openshift Serverless and Knative"
+description = "QA assistant"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "cached-path>=1.6.7",
     "chromadb>=0.5.23",
     "detoxify>=0.5.2",
     "guardrails-ai>=0.5.13",

@@ -30,7 +30,7 @@ def main():
     embeddings = OllamaEmbeddings(model="mxbai-embed-large")
 
     vector_store = Chroma(
-        collection_name="serverless",
+        collection_name="qas",
         embedding_function=embeddings,
         persist_directory=db_path,
     )
