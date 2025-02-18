@@ -39,11 +39,17 @@ def main():
 
     if not os.path.isdir(db_path):
         print(f"Error: The db path '{db_path}' does not exist.")
+        
+    
+    model_base_url = os.getenv("OLLAMA_HOST")
+
+    if model_base_url is None:
+       model_base_url="127.0.0.1:11434"
 
     guard = Guard().use(
-        ToxicLanguage, threshold=0.5, validation_method="sentence", on_fail="exception"
+        ToxicLanguage(use_local=True, threshold=0.5, validation_method="sentence", on_fail="exception")
     )
-    embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+    embeddings = OllamaEmbeddings(model="mxbai-embed-large", base_url=model_base_url)
 
     vector_store = Chroma(
         collection_name="qas",
@@ -51,7 +57,7 @@ def main():
         persist_directory=db_path,
     )
 
-    st.title("Fantastic Charge - Q&A Assistant")
+    st.title("FantasticCharge Pro - Q&A Assistant")
     st.divider()
     path_logo = os.path.dirname(os.path.abspath(__file__)) + "/logo.png"
     im = Image.open(path_logo)

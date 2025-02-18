@@ -25,6 +25,22 @@ python -m streamlit run ./src/qa/qa_st.py
 uv run python -m streamlit run ./src/qa/qa_st.py
 ```
 
+To build the images:
+
+docker build -t skonto/ollama:qa -f Dockerfile.ollama .
+
+docker build --no-cache  --progress=plain --secret "id=guard,src=$HOME/.guardrailsrc" . -t skonto/qa
+
+To run the images:
+
+docker run --gpus all -p8080:11434 skonto/ollama:qa
+
+docker run -it --gpus all -e OLLAMA_HOST=localhost:8080 --net=host skonto/qa
+
+Access the app at: http://localhost:8501
+
 # Interacting with the Q&A Assistant
 
 ![ui](./ui.png)
+
+
