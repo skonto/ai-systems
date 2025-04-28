@@ -3,6 +3,7 @@
 import argparse
 import logging
 import os
+import numpy as np
 import ollama
 import streamlit as st
 from guardrails.hub import ToxicLanguage
@@ -10,6 +11,11 @@ from guardrails import Guard
 from langchain_ollama import OllamaEmbeddings
 from langchain_chroma import Chroma
 from PIL import Image
+from opik import track, opik_context
+import opik
+
+# from sentence_transformers import CrossEncoder
+opik.configure(use_local=True, automatic_approvals=True)
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
@@ -49,7 +55,9 @@ def main():
     guard = Guard().use(
         ToxicLanguage(use_local=True, threshold=0.5, validation_method="sentence", on_fail="exception")
     )
-    embeddings = OllamaEmbeddings(model="mxbai-embed-large", base_url=model_base_url)
+    
+    
+    embeddings = OllamaEmbeddings(model="mxbai-embed-large", base_url=model_base_url, num_gpu=0, keep_alive=-1)
 
     vector_store = Chroma(
         collection_name="qas",
@@ -57,7 +65,7 @@ def main():
         persist_directory=db_path,
     )
 
-    st.title("FantasticCharge Pro - Q&A Assistant")
+    st.title("FantasticCharge Pro - Q&A")
     st.divider()
     path_logo = os.path.dirname(os.path.abspath(__file__)) + "/logo.png"
     im = Image.open(path_logo)
@@ -77,7 +85,7 @@ def main():
                 st.write(msg["assistant"])
 
     if question:
-        with st.spinner("Processing…"):
+        with st.spinner("Working on your input…"):
             retrieved_context = ""
             empty = False
             if is_collection_empty(vector_store):
@@ -94,6 +102,12 @@ def main():
                     logger.debug(f"Chunk Score: {doc[1]}\n")
                     logger.debug(f"Chunk: {doc[0].page_content}\n-------\n")
                     retrieved_context += doc[0].page_content
+                    
+                # model = CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2', max_length=512)
+                # # re-rank the results with original query and documents returned from Chroma
+                # scores = model.predict([(question, doc[0].page_content) for doc in docs])
+                # # get the highest scoring document
+                # print(scores)
 
             qas = st.session_state.qas
 
@@ -105,7 +119,7 @@ def main():
                 print(validation_outcome.validation_summaries)
             except Exception as e:
                 print(e)
-                response = "Your question is toxic pls try again"
+                response = "Your question is not appropriate pls try again"
 
             llama_prompt = format_prompt(question=question, context=retrieved_context)
 
@@ -113,10 +127,14 @@ def main():
 
             print(qas)
 
-            if response != "Your question is toxic pls try again":
-                print(llama_prompt + "\n")
-                output = ollama.chat(model="llama3:instruct", messages=qas)
-                response = output["message"]["content"]
+            if response != "Your question is not appropriate pls try again":
+                if retrieved_context == "":
+                    response = "Question does not seem to be relative to the domain of this application. Please try again!"
+                else:   
+                    print(llama_prompt + "\n")
+                    #output = ollama.chat(model="llama3.2:3b", keep_alive=-1, messages=qas)
+                    output = ollama_llm_call(qas)
+                    response = output["message"]["content"]
 
             with st.chat_message("user"):
                 st.write(question)
@@ -128,6 +146,31 @@ def main():
             st.session_state.qas.append( {'role': 'assistant', 'content': response})
             a = {"user": question, "assistant": str(response)}
             st.session_state.messages.append(a)
+            
+        
+@track(tags=['ollama', 'python-library'])
+def ollama_llm_call(msgs):
+    # Create the Ollama model
+    response = ollama.chat(model="llama3.2:3b", keep_alive=-1, messages=msgs)
+
+    opik_context.update_current_span(
+        # https://github.com/ollama/ollama/blob/main/docs/api.md
+        metadata={
+            'model': response['model'],
+            'eval_duration': response['eval_duration'],
+            'load_duration': response['load_duration'],
+            'prompt_eval_duration': response['prompt_eval_duration'],
+            'prompt_eval_count': response['prompt_eval_count'],
+            'done': response['done'],
+            'done_reason': response['done_reason'],
+        },
+        usage={
+            'completion_tokens': response['eval_count'],
+            'prompt_tokens': response['prompt_eval_count'],
+            'total_tokens': response['eval_count'] + response['prompt_eval_count']
+        }
+    )
+    return response
 
 def is_collection_empty(vector_store):
     """
