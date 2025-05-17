@@ -1,5 +1,7 @@
 # Testing
 
+It tests TPS and response consistency with the same seed. 
+
 Pull first the models:
 
 ```
