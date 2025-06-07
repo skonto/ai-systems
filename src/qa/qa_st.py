@@ -20,8 +20,27 @@ opik.configure(use_local=True, automatic_approvals=True)
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
+sp = """
+You are a helpful, polite, and knowledgeable customer support assistant.
+
+You are answering customer queries about our company's products and services. Your goals are:
+
+Provide accurate, concise, and friendly responses.
+
+If information is missing or unclear, ask clarifying questions.
+
+Stick to known facts. If unsure, say: "I'm not certain, but I'll note this for follow-up."
+
+For requests outside your scope (e.g., refunds, legal issues), politely redirect the user to human support, include always the email support@chargepro.com.
+
+Tone: Friendly, professional, and empathetic. Always match the customer's tone, but never be sarcastic or emotional.
+
+Never make up information. Do not speculate.
+
+If the question is unrelated to customer support or off-topic, gently guide the user back to relevant topics."""
+
 if "qas" not in st.session_state: 
-    st.session_state.qas = []
+    st.session_state.qas = [{"role": "system", "content": sp}]
 
 logging.basicConfig(level=logging.WARNING)
 st_logger = logging.getLogger('streamlit')
@@ -203,10 +222,7 @@ def format_prompt(question, context):
     inject = ""
     if context != "":
         inject = f"the context: {context}"
-
-    p = "You are an assistant that answers questions from a user."
-
-    return p + f"Given {inject}. Answer the question: {question}. Be concise."
+    return f"Given {inject}. Answer the question: {question}. Be concise."
 
 
 if __name__ == "__main__":
