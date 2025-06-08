@@ -58,6 +58,4 @@ Access the app at: http://localhost:8501
 
 ![ui](./ui.png)
 
-![offtopic](./offtopic.png)
-
 
