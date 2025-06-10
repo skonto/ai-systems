@@ -1,10 +1,8 @@
 
+from guardrails.hub import ToxicLanguage
+from guardrails import Guard
 
-
-# from guardrails.hub import DetectJailbreak
-#from guardrails import Guard
-
-# Setup Guard
-#guard = Guard().use(
-#    DetectJailbreak
-#)
+def get_guards() -> Guard:
+    return Guard().use(
+        ToxicLanguage(use_local=True, threshold=0.5, validation_method="sentence", on_fail="exception")
+    )

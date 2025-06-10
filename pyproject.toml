@@ -22,6 +22,9 @@ dependencies = [
     "sentence-transformers>=3.3.1",
     "streamlit>=1.41.1",
     "statistics>=1.0.3.5",
+    "langdetect>=1.0.9",
+    "loguru>=0.7.3",
+    "unidecode>=1.4.0",
 ]
 
 [build-system]

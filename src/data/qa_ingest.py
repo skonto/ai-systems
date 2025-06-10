@@ -27,7 +27,7 @@ def main():
         print(f"Error: The file '{file_path}' does not exist.")
 
     db_path = args.db_path
-    embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+    embeddings = OllamaEmbeddings(model="BGE-M3")
 
     vector_store = Chroma(
         collection_name="qas",
