@@ -1,5 +1,5 @@
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 from uuid import uuid4
 
 import ollama
@@ -9,7 +9,7 @@ from langchain_ollama import OllamaEmbeddings
 from loguru import logger
 from opik import opik_context, track
 
-from .prompts import format_prompt
+from rag.prompts import format_prompt
 
 
 class OllamaRag:
@@ -28,7 +28,7 @@ class OllamaRag:
         collection_name: str = "qas",
         db_path: str = "/tmp/ch_db",
         ollama_host: Optional[str] = None,
-        model_name: str = "llama3.2:3b",
+        model_name: str = "llama3:8b-instruct-q4_0",
         embedding_model: str = "BGE-M3",
         num_gpu: int = 0,
         keep_alive: int = -1,
@@ -78,7 +78,7 @@ class OllamaRag:
             persist_directory=self.db_path,
         )
 
-    def get_response(self, text: str, msgs: List[Dict[str, str]]) -> str:
+    def get_response(self, text: str, msgs: List[Dict[str, str]]) -> Tuple[str, List[str]]:
         """
         Generates a LLM response based on user input and retrieved document context.
 
@@ -89,6 +89,7 @@ class OllamaRag:
         Returns:
             str: The content of the model's generated response.
         """
+        chunks = []
         if self.is_collection_empty():
             logger.warning("Collection is empty!")
             retrieved_context = ""
@@ -102,6 +103,7 @@ class OllamaRag:
                 logger.debug(f"Chunk Score: {score}")
                 logger.debug(f"Chunk: {doc.page_content}\n-------\n")
                 retrieved_context += doc.page_content
+                chunks.append(doc.page_content)
 
         prompt = format_prompt(question=text, context=retrieved_context)
         conversation = msgs + [{"role": "user", "content": prompt}]
@@ -111,7 +113,7 @@ class OllamaRag:
             logger.debug(msg)
 
         output = self.ollama_llm_call(conversation)
-        return output["message"]["content"]
+        return (output["message"]["content"], chunks)
 
     def is_collection_empty(self) -> bool:
         """

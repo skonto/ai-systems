@@ -69,7 +69,7 @@ def main():
 
             if response == "":
                 qas = st.session_state.qas
-                response = OllamaRag().get_response(user_input, qas)
+                response, _ = OllamaRag().get_response(user_input, qas)
 
             with st.chat_message("user"):
                 st.write(user_input)
