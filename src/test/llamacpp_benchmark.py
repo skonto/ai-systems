@@ -1,12 +1,13 @@
+import json
 import requests
 import time
-import json
 
 LLAMA_CPP_URL = "http://localhost:8080/v1/completions"
 MODEL_NAME = "llama.cpp"  # for logging purposes only
 
 PROMPT = """Explain the concept of vector embeddings in natural language processing. 
 Use simple language and provide a real-world example."""
+
 
 def get_response(prompt):
     headers = {"Content-Type": "application/json"}
@@ -15,7 +16,7 @@ def get_response(prompt):
         "prompt": prompt,
         "max_tokens": 512,
         "temperature": 0.7,
-        "stream": False
+        "stream": False,
     }
 
     start_time = time.time()
@@ -37,6 +38,7 @@ def get_response(prompt):
         print(f"⚡ Tokens/sec: {tokens_per_sec:.2f}")
     else:
         print("❌ Request failed:", response.status_code, response.text)
+
 
 if __name__ == "__main__":
     get_response(PROMPT)

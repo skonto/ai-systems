@@ -19,7 +19,7 @@ RUN --mount=type=secret,id=guard,target=/root/.guardrailsrc \
     /app/.venv/bin/guardrails hub install hub://guardrails/toxic_language
 
 # Copy the project into the intermediate image
-ADD ./src/qa /app/src/qa
+ADD ./src/chatbot /app/src/chatbot
 ADD ./pyproject.toml /app
 ADD ./uv.lock /app
 
@@ -40,4 +40,4 @@ ENV VIRTUAL_ENV=/app/.venv
 ENV PATH=/app/.venv/bin:${PATH}
 
 # Run the application
-CMD ["python", "-m", "streamlit", "run", "/app/src/qa/qa_st.py"]
+CMD ["python", "-m", "streamlit", "run", "/app/src/chatbot/app.py"]

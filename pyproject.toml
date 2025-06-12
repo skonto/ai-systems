@@ -17,7 +17,6 @@ dependencies = [
     "numpy>=1.26.4",
     "ollama>=0.4.4",
     "opik>=1.6.13",
-    "pylint>=3.3.3",
     "ragas>=0.2.14",
     "sentence-transformers>=3.3.1",
     "streamlit>=1.41.1",
@@ -30,3 +29,18 @@ dependencies = [
 [build-system]
 requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
+
+[dependency-groups]
+dev = [
+    "pylint>=3.3.3",
+    "pytest>=8.3.5",
+    "ruff>=0.11.13",
+]
+
+[tool.ruff]
+line-length = 88
+lint.select = ["I"]
+fix = true
+
+[tool.ruff.lint.isort]
+known-third-party = ["ollama", "langchain_ollama", "langchain_chroma", "opik", "loguru"]

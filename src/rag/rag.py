@@ -1,90 +1,212 @@
+import os
+from uuid import uuid4
+from typing import List, Dict, Any, Optional
+
+from loguru import logger
 from langchain_ollama import OllamaEmbeddings
 from langchain_chroma import Chroma
-from loguru import logger
-from opik import track, opik_context
-from .system_prompts import format_prompt
+from langchain_core import documents
 import ollama
-import os
+from opik import track, opik_context
 
-class OllamaRag():
-    collection_name : str = "qas"
-    db_path: str = "/tmp/ch_db"
-    model_base_url = "127.0.0.1:11434" if os.getenv("OLLAMA_HOST") is None else os.getenv("OLLAMA_HOST") 
-    
-    embeddings = OllamaEmbeddings(model="BGE-M3", base_url=model_base_url, num_gpu=0, keep_alive=-1)
+from .prompts import format_prompt
 
-    vector_store = Chroma(
-        collection_name=collection_name,
-        embedding_function=embeddings,
-        persist_directory=db_path,
-    )
 
-    @classmethod
-    def get_reponse(cls, text: str, msgs) -> str:
-        retrieved_context = ""
-        empty = False
-    
-        if cls.is_collection_empty():
-            logger.warning("Collection is empty!")
-            empty = True
+class OllamaRag:
+    """
+    A configurable Retrieval-Augmented Generation (RAG) pipeline using:
 
-        docs = []
+    - Ollama for LLM-based chat completion and embeddings.
+    - Chroma as the persistent vector store.
 
-        if not empty:
-            docs = cls.vector_store.similarity_search_with_relevance_scores(
-                f"{text}", k=5, score_threshold=0.4
-            )
-            for doc in docs:
-                logger.debug(f"Chunk Score: {doc[1]}\n")
-                logger.debug(f"Chunk: {doc[0].page_content}\n-------\n")
-                retrieved_context += doc[0].page_content
+    This class supports document ingestion, retrieval with relevance scoring,
+    prompt formatting, and generating contextual responses from a local LLM.
+    """
 
-        llama_prompt = format_prompt(question=text, context=retrieved_context)
-
-        qas = msgs + [{'role': 'user', 'content': llama_prompt} ]
-
-        logger.debug("chunks passed to LLM:")
-        for msg in qas:
-                logger.debug(msg)
-        output = cls.ollama_llm_call(qas)
-        return output["message"]["content"]
-
-    @classmethod
-    def is_collection_empty(cls):
+    def __init__(
+        self,
+        collection_name: str = "qas",
+        db_path: str = "/tmp/ch_db",
+        ollama_host: Optional[str] = None,
+        model_name: str = "llama3.2:3b",
+        embedding_model: str = "BGE-M3",
+        num_gpu: int = 0,
+        keep_alive: int = -1,
+        temperature: float = 0.0,
+        seed: int = 1234,
+        top_k: int = 1,
+        num_predict: int = 400,
+        score_threshold: float = 0.4,
+    ):
         """
-        Checks if the db is empty.
+        Initializes the RAG system with configurable parameters.
 
         Args:
-            vector_store : the vector store
+            collection_name (str): Name of the Chroma vector store collection.
+            db_path (str): Path to store the vector DB on disk.
+            ollama_host (Optional[str]): Base URL for the Ollama server.
+            model_name (str): LLM model identifier used for chat generation.
+            embedding_model (str): Embedding model name for document encoding.
+            num_gpu (int): Number of GPUs to use for embeddings (0 = CPU).
+            keep_alive (int): Ollama session timeout in seconds (-1 for infinite).
+            temperature (float): Sampling temperature for LLM generation.
+            seed (int): Random seed for deterministic generation.
+            top_k (int): Top-k token sampling for decoding.
+            num_predict (int): Max number of tokens to generate.
+            score_threshold (float): Minimum similarity score to include a document.
+        """
+        self.collection_name = collection_name
+        self.db_path = db_path
+        self.model_base_url = ollama_host or os.getenv("OLLAMA_HOST", "127.0.0.1:11434")
+        self.model_name = model_name
+        self.temperature = temperature
+        self.seed = seed
+        self.top_k = top_k
+        self.num_predict = num_predict
+        self.score_threshold = score_threshold
+
+        self.embeddings = OllamaEmbeddings(
+            model=embedding_model,
+            base_url=self.model_base_url,
+            num_gpu=num_gpu,
+            keep_alive=keep_alive,
+        )
+
+        self.vector_store = Chroma(
+            collection_name=self.collection_name,
+            embedding_function=self.embeddings,
+            persist_directory=self.db_path,
+        )
+
+    def get_response(self, text: str, msgs: List[Dict[str, str]]) -> str:
+        """
+        Generates a LLM response based on user input and retrieved document context.
+
+        Args:
+            text (str): The user's question or prompt.
+            msgs (List[Dict[str, str]]): Message history (OpenAI-style chat format).
 
         Returns:
-            bool:  if db is empty
+            str: The content of the model's generated response.
         """
+        if self.is_collection_empty():
+            logger.warning("Collection is empty!")
+            retrieved_context = ""
+        else:
+            results = self.vector_store.similarity_search_with_relevance_scores(
+                text, k=5, score_threshold=self.score_threshold
+            )
 
-        docs = cls.vector_store.get()["ids"]
-        return len(docs) == 0
-    
-    @classmethod
-    @track(tags=['ollama', 'python-library'])
-    def ollama_llm_call(cls, msgs):
-        # Create the Ollama model
-        response = ollama.chat(model="llama3.2:3b", keep_alive=-1, messages=msgs, options={"temperature": 0.0, "seed": 1234, "top_k":1, "num_predict": 400})
+            retrieved_context = ""
+            for doc, score in results:
+                logger.debug(f"Chunk Score: {score}")
+                logger.debug(f"Chunk: {doc.page_content}\n-------\n")
+                retrieved_context += doc.page_content
+
+        prompt = format_prompt(question=text, context=retrieved_context)
+        conversation = msgs + [{"role": "user", "content": prompt}]
+
+        logger.debug("Chunks passed to LLM:")
+        for msg in conversation:
+            logger.debug(msg)
+
+        output = self.ollama_llm_call(conversation)
+        return output["message"]["content"]
+
+    def is_collection_empty(self) -> bool:
+        """
+        Checks if the vector store has any stored document chunks.
+
+        Returns:
+            bool: True if the collection is empty, False otherwise.
+        """
+        ids = self.vector_store.get().get("ids", [])
+        return len(ids) == 0
+
+    def ingest_docs(self, file_path: str, db_path: str) -> None:
+        """
+        Ingests a structured plain text file into the vector store.
+
+        The file is split on "---" as chunk separators, and each chunk is stored
+        as a separate document in the Chroma collection.
+
+        Args:
+            file_path (str): Path to the input `.txt` file to ingest.
+            db_path(str): Path to the Chroma vector database.
+        """
+        if self.is_collection_empty():
+
+            self.vector_store = Chroma(
+                collection_name=self.collection_name,
+                embedding_function=self.embeddings,
+                persist_directory=db_path,
+            )
+
+            logger.info(f"Ingesting documents from {file_path}")
+            with open(file_path, "r", encoding="utf-8") as file:
+                content = file.read()
+
+            chunks = [chunk for chunk in content.split("---") if chunk.strip()]
+            docs = [documents.Document(page_content=c) for c in chunks]
+            ids = [str(uuid4()) for _ in docs]
+
+            self.vector_store.add_documents(documents=docs, ids=ids)
+        else:
+            logger.info("Skipping ingestion — collection already populated.")
+
+    @track(tags=["ollama", "python-library"])
+    def ollama_llm_call(self, msgs: List[Dict[str, str]]) -> Dict[str, Any]:
+        """
+        Sends a chat prompt to the Ollama model and logs performance + usage metadata.
+
+        Args:
+            msgs (List[Dict[str, str]]): List of messages to send to the LLM
+                (in OpenAI-compatible chat format).
+
+        Returns:
+            Dict[str, Any]: The complete response from the Ollama LLM,
+                including model output, token usage, and timing metadata.
+        """
+        logger.debug("Sending messages to Ollama:")
+        for msg in msgs:
+            logger.debug(msg)
+
+        response = ollama.chat(
+            model=self.model_name,
+            keep_alive=-1,
+            messages=msgs,
+            options={
+                "temperature": self.temperature,
+                "seed": self.seed,
+                "top_k": self.top_k,
+                "num_predict": self.num_predict,
+            },
+        )
+
+        required_keys = [
+            "model", "eval_duration", "load_duration",
+            "prompt_eval_duration", "prompt_eval_count",
+            "eval_count", "done", "done_reason"
+        ]
+        for key in required_keys:
+            if key not in response:
+                logger.warning(f"Key '{key}' missing in Ollama response")
 
         opik_context.update_current_span(
-            # https://github.com/ollama/ollama/blob/main/docs/api.md
             metadata={
-                'model': response['model'],
-                'eval_duration': response['eval_duration'],
-                'load_duration': response['load_duration'],
-                'prompt_eval_duration': response['prompt_eval_duration'],
-                'prompt_eval_count': response['prompt_eval_count'],
-                'done': response['done'],
-                'done_reason': response['done_reason'],
+                "model": response.get("model"),
+                "eval_duration": response.get("eval_duration"),
+                "load_duration": response.get("load_duration"),
+                "prompt_eval_duration": response.get("prompt_eval_duration"),
+                "prompt_eval_count": response.get("prompt_eval_count"),
+                "done": response.get("done"),
+                "done_reason": response.get("done_reason"),
             },
             usage={
-                'completion_tokens': response['eval_count'],
-                'prompt_tokens': response['prompt_eval_count'],
-                'total_tokens': response['eval_count'] + response['prompt_eval_count']
-            }
+                "completion_tokens": response.get("eval_count", 0),
+                "prompt_tokens": response.get("prompt_eval_count", 0),
+                "total_tokens": response.get("eval_count", 0) + response.get("prompt_eval_count", 0),
+            },
         )
+
         return response

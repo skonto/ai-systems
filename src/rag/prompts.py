@@ -1,7 +1,6 @@
-
 import re
 
-system_prompt = """
+SYSTEM_PROMPT = """
 You are a helpful, polite, and knowledgeable customer support assistant for a company that sells chargers and other electronic devices.
 
 Your job is to answer customer questions using only the information provided in the retrieved context and any past user question and answer. 
@@ -40,6 +39,7 @@ User question:
 {{user_question}}
 """
 
+
 def format_prompt(question, context):
     """
     Formats the prompt according to RAG and history.
@@ -65,6 +65,7 @@ def format_prompt(question, context):
     User question:
     {question}
     """
+
 
 def clean_qa_style_context(raw_context: str) -> str:
     """
@@ -92,11 +93,17 @@ def clean_qa_style_context(raw_context: str) -> str:
             continue  # skip if not a proper Q&A pair
 
         # First non-empty line as question
-        question = next((l.strip() for l in lines if l.strip()), "")
+        question = next((line.strip() for line in lines if line.strip()), "")
         # All subsequent non-question lines as answer
         answer_lines = [
-            l.strip() for l in lines[1:] 
-            if l.strip() and not re.match(r"^(what|how|when|why|does|do|is|are|can|should|who|where|which|would|will|did)\b.*\?\s*$", l.strip().lower())
+            line.strip()
+            for line in lines[1:]
+            if line.strip()
+            and not re.match(
+                r"^(what|how|when|why|does|do|is|are|can|should| \
+                who|where|which|would|will|did)\b.*\?\s*$",
+                line.strip().lower(),
+            )
         ]
 
         if question and answer_lines:
@@ -104,3 +111,7 @@ def clean_qa_style_context(raw_context: str) -> str:
             formatted_pairs.append(f"Q: {question}\nA: {answer}")
 
     return "\n".join(formatted_pairs)
+
+
+def get_initial_chat_state():
+    return [{"role": "system", "content": SYSTEM_PROMPT}]

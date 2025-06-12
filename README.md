@@ -14,18 +14,18 @@ ollama pull llama3:instruct
 olllama pull mxbai-embed-large
 
 # Ingest txt Q&A data in Chroma DB
-uv run src/data/qa_ingest.py ./data/fantastic_charge/qa.txt /tmp/ch_db
+uv run src/data/rag_ingest.py ./data/fantastic_charge/qa.txt /tmp/ch_db
 
 # start opik as shown in the next section
 
 # Run the Chat Streamlit app
 source .venv/bin/activate
 
-python -m streamlit run ./src/qa/qa_st.py
+python -m streamlit run ./src/chatbot/app.py
 
 # Alternatively:
 
-uv run python -m streamlit run ./src/qa/qa_st.py
+uv run python -m streamlit run ./src/chatbot/app.py
 ```
 
 ### Running opik.
@@ -57,5 +57,3 @@ Access the app at: http://localhost:8501
 ## Interacting with the Q&A Assistant
 
 ![ui](./ui.png)
-
-

@@ -1,23 +1,26 @@
 import argparse
 import os
-import streamlit as st
-from PIL import Image
-from opik import track
+
 import opik
+import streamlit as st
 from loguru import logger
-from rag import OllamaRag
+from PIL import Image
 
-from rag import system_prompt, format_prompt
-from guards import get_guards, validate_input
+from guards import validate_input
+from rag import OllamaRag, get_initial_chat_state
 
-logger.add("app.log", rotation="10 MB", retention="7 days", backtrace=True, diagnose=True)
+logger.add(
+    "app.log", rotation="10 MB", retention="7 days", backtrace=True, diagnose=True
+)
+
 opik.configure(use_local=True, automatic_approvals=True)
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-if "qas" not in st.session_state: 
-    st.session_state.qas = [{"role": "system", "content": system_prompt}]
+if "qas" not in st.session_state:
+    st.session_state.qas = get_initial_chat_state()
+
 
 def main():
     parser = argparse.ArgumentParser(
@@ -35,7 +38,7 @@ def main():
 
     if not os.path.isdir(db_path):
         print(f"Error: The db path '{db_path}' does not exist.")
-        
+
     st.title("Customer Support- Q&A")
     st.divider()
     path_logo = os.path.dirname(os.path.abspath(__file__)) + "/logo.png"
@@ -66,19 +69,19 @@ def main():
 
             if response == "":
                 qas = st.session_state.qas
-                response = OllamaRag.get_reponse(user_input, qas)
+                response = OllamaRag().get_response(user_input, qas)
 
             with st.chat_message("user"):
                 st.write(user_input)
             with st.chat_message("assistant", avatar=im):
                 out = str(response)
                 st.write(out)
-            
-            st.session_state.qas.append( {'role': 'user', 'content': user_input})
-            st.session_state.qas.append( {'role': 'assistant', 'content': response})
+
+            st.session_state.qas.append({"role": "user", "content": user_input})
+            st.session_state.qas.append({"role": "assistant", "content": response})
             a = {"user": user_input, "assistant": str(response)}
             st.session_state.messages.append(a)
-            
+
 
 if __name__ == "__main__":
     main()

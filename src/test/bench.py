@@ -1,36 +1,40 @@
-import requests
-import time
 import json
+import requests
 import statistics
+import time
 
 OLLAMA_URL = "http://localhost:11434/api/generate"
-MODEL_NAMES =  [ "llama3.2:3b", "ollama.com/library/llama3:8b-instruct-q4_0", "llama3.1:8b-instruct-q8_0"]
+MODEL_NAMES = [
+    "llama3.2:3b",
+    "ollama.com/library/llama3:8b-instruct-q4_0",
+    "llama3.1:8b-instruct-q8_0",
+]
 RUNS_PER_MODEL = 5
 PROMPT = """Explain the concept of vector embeddings in natural language processing. 
 Use simple language and provide a real-world example."""
 
-def get_response(prompt, model="mistral", warm_up = False):
+
+def get_response(prompt, model="mistral", warm_up=False):
     headers = {"Content-Type": "application/json"}
     payload = {
         "model": model,
         "prompt": prompt,
         "stream": False,
         "options": {
-        "temperature": 0.0,
-        "n_predict": 128,
-        "n_probs": 1,
-        "temperature": 0,
-        "samplers": ["temperature"],
-        "seed": 1234,
-        "repeat_last_n": 0,
-        "min_p": 0.0,
-        "top_p": 1.0,
-        "top_k": 100,
-        "repeat_penalty": 1.0,
-        "mirostat_eta": 0.0,
-        "mirostat_tau": 0.0,
-        "cache_prompt": False
-      }
+            "n_predict": 128,
+            "n_probs": 1,
+            "temperature": 0,
+            "samplers": ["temperature"],
+            "seed": 1234,
+            "repeat_last_n": 0,
+            "min_p": 0.0,
+            "top_p": 1.0,
+            "top_k": 100,
+            "repeat_penalty": 1.0,
+            "mirostat_eta": 0.0,
+            "mirostat_tau": 0.0,
+            "cache_prompt": False,
+        },
     }
 
     start_time = time.time()
@@ -57,15 +61,15 @@ def get_response(prompt, model="mistral", warm_up = False):
         print("❌ Request failed:", response.status_code, response.text)
         return None, None, None
 
-if __name__ == "__main__":
 
+if __name__ == "__main__":
     # for model in MODEL_NAME:
     #     # warm up
     #     get_response(PROMPT, model, True)
 
     #     get_response(PROMPT, model, False)
 
-      for model in MODEL_NAMES:
+    for model in MODEL_NAMES:
         print(f"\n🚀 Testing model: {model}")
         outputs = []
         durations = []
@@ -76,7 +80,7 @@ if __name__ == "__main__":
         get_response(PROMPT, model)
 
         for i in range(RUNS_PER_MODEL):
-            print(f"🔁 Run {i+1}/{RUNS_PER_MODEL}")
+            print(f"🔁 Run {i + 1}/{RUNS_PER_MODEL}")
             output, duration, tps = get_response(PROMPT, model)
             if output is None:
                 continue
@@ -90,8 +94,18 @@ if __name__ == "__main__":
 
         # Report
         print(f"\n📊 Results for model: {model}")
-        print(f"🧪 Outputs consistent across runs: {'✅ YES' if outputs_consistent else '❌ NO'}")
+        print(
+            f"🧪 Outputs consistent across runs: {'✅ YES' if outputs_consistent else '❌ NO'}"
+        )
         print(f"⏱️ Mean time: {statistics.mean(durations):.2f} sec")
-        print(f"📈 Std deviation time: {statistics.stdev(durations):.2f} sec" if len(durations) > 1 else "📈 Not enough data for std deviation")
+        print(
+            f"📈 Std deviation time: {statistics.stdev(durations):.2f} sec"
+            if len(durations) > 1
+            else "📈 Not enough data for std deviation"
+        )
         print(f"⚡ Mean tokens/sec: {statistics.mean(tps_list):.2f}")
-        print(f"📉 Std deviation tokens/sec: {statistics.stdev(tps_list):.2f}" if len(tps_list) > 1 else "")
+        print(
+            f"📉 Std deviation tokens/sec: {statistics.stdev(tps_list):.2f}"
+            if len(tps_list) > 1
+            else ""
+        )
