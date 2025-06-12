@@ -1,13 +1,13 @@
 import os
+from typing import Any, Dict, List, Optional
 from uuid import uuid4
-from typing import List, Dict, Any, Optional
 
-from loguru import logger
-from langchain_ollama import OllamaEmbeddings
+import ollama
 from langchain_chroma import Chroma
 from langchain_core import documents
-import ollama
-from opik import track, opik_context
+from langchain_ollama import OllamaEmbeddings
+from loguru import logger
+from opik import opik_context, track
 
 from .prompts import format_prompt
 
@@ -205,7 +205,8 @@ class OllamaRag:
             usage={
                 "completion_tokens": response.get("eval_count", 0),
                 "prompt_tokens": response.get("prompt_eval_count", 0),
-                "total_tokens": response.get("eval_count", 0) + response.get("prompt_eval_count", 0),
+                "total_tokens": response.get("eval_count", 0) + \
+                      response.get("prompt_eval_count", 0),
             },
         )
 

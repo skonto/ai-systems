@@ -1,12 +1,8 @@
 import argparse
 import os
-from uuid import uuid4
-
-from langchain_chroma import Chroma
-from langchain_core import documents
-from langchain_ollama import OllamaEmbeddings
 
 from rag import OllamaRag
+
 
 def main():
     parser = argparse.ArgumentParser(
@@ -26,7 +22,7 @@ def main():
 
     if not os.path.isdir(db_path):
         print(f"Warning: The dir '{db_path}' does not exist but it will be created.")
-    
+
     OllamaRag().ingest_docs(file_path, db_path)
 
 

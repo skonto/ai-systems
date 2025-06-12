@@ -114,4 +114,16 @@ def clean_qa_style_context(raw_context: str) -> str:
 
 
 def get_initial_chat_state():
+    """
+    Returns the initial chat history state for an LLM conversation.
+
+    This includes a single system message that sets the assistant's behavior,
+    using the predefined `SYSTEM_PROMPT` which typically describes the assistant's role,
+    tone, and constraints (e.g., context-awareness, grounding rules).
+
+    Returns:
+        list[dict]: A list containing one system message dict with keys:
+            - 'role': "system"
+            - 'content': The value of SYSTEM_PROMPT
+    """
     return [{"role": "system", "content": SYSTEM_PROMPT}]

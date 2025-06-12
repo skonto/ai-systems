@@ -1,7 +1,8 @@
 import json
-import requests
 import statistics
 import time
+
+import requests
 
 OLLAMA_URL = "http://localhost:11434/api/generate"
 MODEL_NAMES = [

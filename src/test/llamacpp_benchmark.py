@@ -1,6 +1,7 @@
 import json
-import requests
 import time
+
+import requests
 
 LLAMA_CPP_URL = "http://localhost:8080/v1/completions"
 MODEL_NAME = "llama.cpp"  # for logging purposes only
