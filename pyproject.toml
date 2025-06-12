@@ -9,11 +9,11 @@ dependencies = [
     "chromadb>=0.5.23",
     "detoxify>=0.5.2",
     "guardrails-ai>=0.5.13",
-    "langchain-chroma>=0.1.4",
-    "langchain-core>=0.3.28",
-    "langchain-experimental>=0.3.4",
-    "langchain-ollama>=0.2.3",
-    "langchain>=0.3.13",
+    #    "langchain-chroma>=0.1.4",
+    #    "langchain-core>=0.3.28",
+    #    "langchain-experimental>=0.3.4",
+    #    "langchain-ollama>=0.2.3",
+    #    "langchain>=0.3.13",
     "numpy>=1.26.4",
     "ollama>=0.4.4",
     "opik>=1.6.13",
@@ -24,6 +24,11 @@ dependencies = [
     "langdetect>=1.0.9",
     "loguru>=0.7.3",
     "unidecode>=1.4.0",
+    "langchain-core>=0.3.41",
+    "langchain-chroma>=0.2.3",
+    "langchain-ollama>=0.3.3",
+    "langchain>=0.3.25",
+    "langchain-experimental>=0.3.4",
 ]
 
 [build-system]
