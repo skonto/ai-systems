@@ -31,6 +31,8 @@ dependencies = [
     "langchain-experimental>=0.3.4",
     "langchain-community>=0.3.25",
     "sacrebleu>=2.5.1",
+    "scikit-learn>=1.7.0",
+    "rank-bm25>=0.2.2",
 ]
 
 [build-system]

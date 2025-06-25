@@ -3,6 +3,8 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 from uuid import uuid4
 
+from chromadb.config import Settings
+import chromadb
 import ollama
 from langchain_chroma import Chroma
 from langchain_core import documents
@@ -11,6 +13,7 @@ from loguru import logger
 from opik import opik_context, track
 
 from rag.prompts import format_prompt
+from rag.utils import build_langchain_bm25_retriever, fuse_with_bm25
 
 
 class OllamaRag:
@@ -79,6 +82,9 @@ class OllamaRag:
             persist_directory=self.db_path,
         )
 
+        # TODO: move to Milvus, elastic etc this is only for local
+        self.bm25 = build_langchain_bm25_retriever(self.get_all_documents_from_collection(self.collection_name, self.db_path), 5)
+
     def get_response(self, text: str, msgs: List[Dict[str, str]]) -> Tuple[str, List[str]]:
         """
         Generates a LLM response based on user input and retrieved document context.
@@ -108,10 +114,12 @@ class OllamaRag:
             for doc, score in results:
                 logger.debug(f"Chunk Score: {score}")
                 logger.debug(f"Chunk: {doc.page_content}\n-------\n")
-                retrieved_context += doc.page_content
                 chunks.append(doc.page_content)
+            fused_results = fuse_with_bm25(results, self.bm25, new_text, alpha=0.4)
+            retrieved_context = "".join(doc.page_content + "\n" for doc, _ in fused_results)
 
         prompt = format_prompt(question=new_text, context=retrieved_context)
+
         conversation = msgs + [{"role": "user", "content": prompt}]
 
         logger.debug("Chunks passed to LLM:")
@@ -182,6 +190,38 @@ class OllamaRag:
             return True
 
         return False
+
+    def get_all_documents_from_collection(self, collection_name: str, persist_directory: str):
+        """
+        Load all documents from a persisted Chroma collection using native chromadb client.
+
+        Args:
+            collection_name (str): Name of the collection.
+            persist_directory (str): Path to persisted Chroma database.
+
+        Returns:
+            List[dict]: List of {'id': ..., 'document': ..., 'metadata': ...}
+        """
+        client = chromadb.PersistentClient(path=persist_directory)
+
+        collection = client.get_collection(name=collection_name)
+
+        print(f"✅ Collection found: {collection.name}")
+        print(f"📦 Total documents: {collection.count()}")
+
+        # Now retrieve all documents (no filters, no includes needed for IDs)
+        results = collection.get(include=["documents", "metadatas"])
+
+        docs = []
+        for doc_id, doc_text, metadata in zip(results['ids'], results['documents'], results['metadatas']):
+            docs.append({
+                'id': doc_id,
+                'document': doc_text,
+                'metadata': metadata
+            })
+
+        print(f"✅ Retrieved {len(docs)} documents.")
+        return docs
             
     def rewrite_ambiguous_prompt(self, messages: list, new_user_input: str) -> str:
         """Rewrite user input using chat history to resolve ambiguity."""
