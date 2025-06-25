@@ -14,7 +14,7 @@ ollama pull llama3:instruct
 olllama pull mxbai-embed-large
 
 # Ingest txt Q&A data in Chroma DB
-uv run src/data/rag_ingest.py ./data/fantastic_charge/qa.txt /tmp/ch_db
+uv run src/data/rag_ingest.py ./data/products /tmp/ch_db
 
 # start opik as shown in the next section
 

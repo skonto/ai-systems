@@ -1,5 +1,6 @@
 import argparse
 import os
+import sys
 
 import opik
 import streamlit as st
@@ -9,9 +10,18 @@ from PIL import Image
 from guards import validate_input
 from rag import OllamaRag, get_initial_chat_state
 
-logger.add(
-    "app.log", rotation="10 MB", retention="7 days", backtrace=True, diagnose=True
-)
+if "logger_configured" not in st.session_state:
+
+    logger.add(
+        "app.log",
+        rotation="10 MB",
+        retention="7 days",
+        backtrace=True,
+        diagnose=True,
+        level="DEBUG",
+    )
+
+    st.session_state.logger_configured = True
 
 opik.configure(use_local=True, automatic_approvals=True)
 

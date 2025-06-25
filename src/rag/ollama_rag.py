@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 from uuid import uuid4
 
@@ -35,7 +36,7 @@ class OllamaRag:
         temperature: float = 0.0,
         seed: int = 1234,
         top_k: int = 1,
-        num_predict: int = 400,
+        num_predict: int = 1000,
         score_threshold: float = 0.4,
     ):
         """
@@ -90,12 +91,17 @@ class OllamaRag:
             str: The content of the model's generated response.
         """
         chunks = []
+        new_text = text 
+        if self.needs_rewrite(text):
+            new_text = self.rewrite_ambiguous_prompt(msgs, text)
+
         if self.is_collection_empty():
             logger.warning("Collection is empty!")
             retrieved_context = ""
         else:
+            print(text)
             results = self.vector_store.similarity_search_with_relevance_scores(
-                text, k=5, score_threshold=self.score_threshold
+                new_text, k=5, score_threshold=self.score_threshold
             )
 
             retrieved_context = ""
@@ -105,7 +111,7 @@ class OllamaRag:
                 retrieved_context += doc.page_content
                 chunks.append(doc.page_content)
 
-        prompt = format_prompt(question=text, context=retrieved_context)
+        prompt = format_prompt(question=new_text, context=retrieved_context)
         conversation = msgs + [{"role": "user", "content": prompt}]
 
         logger.debug("Chunks passed to LLM:")
@@ -113,7 +119,7 @@ class OllamaRag:
             logger.debug(msg)
 
         output = self.ollama_llm_call(conversation)
-        return (output["message"]["content"], chunks)
+        return (output["message"]["content"].strip(), chunks)
 
     def is_collection_empty(self) -> bool:
         """
@@ -124,6 +130,7 @@ class OllamaRag:
         """
         ids = self.vector_store.get().get("ids", [])
         return len(ids) == 0
+
 
     def ingest_docs(self, file_path: str, db_path: str) -> None:
         """
@@ -137,24 +144,58 @@ class OllamaRag:
             db_path(str): Path to the Chroma vector database.
         """
         if self.is_collection_empty():
+            path = Path(file_path)
+            files = []
 
-            self.vector_store = Chroma(
-                collection_name=self.collection_name,
-                embedding_function=self.embeddings,
-                persist_directory=db_path,
-            )
+            if path.is_file() and path.suffix == ".txt":
+                files = [path]
+            elif path.is_dir():
+                files = list(path.glob("*.txt"))
+            else:
+                logger.warning(f"No valid .txt files found at {file_path}")
+                return
 
-            logger.info(f"Ingesting documents from {file_path}")
-            with open(file_path, "r", encoding="utf-8") as file:
-                content = file.read()
+            for txt_file in files:
+                logger.info(f"Ingesting documents from {txt_file}")
+                with open(txt_file, "r", encoding="utf-8") as f:
+                    content = f.read()
 
-            chunks = [chunk for chunk in content.split("---") if chunk.strip()]
-            docs = [documents.Document(page_content=c) for c in chunks]
-            ids = [str(uuid4()) for _ in docs]
+                chunks = [chunk.strip() for chunk in content.split("---") if chunk.strip()]
+                docs = [documents.Document(page_content=chunk) for chunk in chunks]
+                ids = [str(uuid4()) for _ in docs]
 
-            self.vector_store.add_documents(documents=docs, ids=ids)
+                self.vector_store.add_documents(documents=docs, ids=ids)
         else:
             logger.info("Skipping ingestion — collection already populated.")
+
+    def needs_rewrite(self, user_input: str) -> bool:
+        input_lower = user_input.lower().strip()
+        pronouns = ["it", "its", "this", "that", "they", "those", "them", "their"]
+        vague_starters = ["what about", "and", "also", "how much", "how long"]
+
+        # Check for pronouns or vague follow-up starters
+        if any(p in input_lower.split() for p in pronouns):
+            return True
+        if any(input_lower.startswith(start) for start in vague_starters):
+            return True
+        if len(input_lower.split()) < 5 and "?" in input_lower:
+            return True
+
+        return False
+            
+    def rewrite_ambiguous_prompt(self, messages: list, new_user_input: str) -> str:
+        """Rewrite user input using chat history to resolve ambiguity."""
+        prompt = "You are a helpful assistant that rewrites ambiguous user questions based on chat history.\n"
+        prompt += "Do not answer the question. Just rewrite it to be self-contained. Be consice.\n\n"
+        prompt += "Chat history:\n"
+        for m in messages[-4:]:  # last few turns for context
+            if m["role"] in ("user", "assistant"):
+                prompt += f"{m['role'].capitalize()}: {m['content']}\n"
+        prompt += f"\nAmbiguous user input: {new_user_input}\n"
+        prompt += "Rewritten version:"
+
+        response = ollama.chat(model=self.model_name, messages=[{"role": "user", "content": prompt}])
+        return response["message"]["content"].strip()
 
     @track(tags=["ollama", "python-library"])
     def ollama_llm_call(self, msgs: List[Dict[str, str]]) -> Dict[str, Any]:

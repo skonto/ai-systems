@@ -1,129 +1,96 @@
 import re
+from typing import List, Dict
 
-SYSTEM_PROMPT = """
-You are a helpful, polite, and knowledgeable customer support assistant for a company that sells chargers and other electronic devices.
+# Pre-compile regex to identify question lines
+QUESTION_PATTERN = re.compile(r"^(?:what|how|when|why|does|do|is|are|can|should|"
+                              r"who|where|which|would|will|did)\b.*\?\s*$", re.IGNORECASE)
 
-Your job is to answer customer questions using only the information provided in the retrieved context and any past user question and answer. 
+SYSTEM_PROMPT = (
+    """
+You are a helpful, polite, and knowledgeable customer support assistant for a company that sells chargers
+and other electronic devices.
+
+Your job is to answer customer questions using only the information provided in the retrieved context
+and any past user question and answer.
 
 Do not invent information.
 
 Your objectives:
 - Provide clear, accurate, and concise responses.
-- Ask clarifying questions if the user’s request is vague or missing key details.
+- Ask clarifying questions if the user request is vague or missing key details.
 - Stick strictly to known facts. Never speculate or make up information.
 - If the request is outside your scope (e.g. refunds, legal issues), politely direct the user to human support.
 
-For escalation or human support, refer customers to: **support@chargepro.com**
+For escalation or human support, refer customers to: support@chargepro.com
 
 Tone guidelines:
 - Be friendly, professional, and empathetic.
 - Match the customer's tone, but never be sarcastic or emotional.
 - Prioritize helpfulness, clarity, and honesty.
 
-
 If the answer is not found in the context or previous interactions, respond with:
 "Sorry, I cannot answer that based on the available information."
-
-Use the following context and the user's question to answer, the context is not provided by the user:
-
-Context:
----
-Q:
-A:
-Q:
-A:
-...
----
-
-User question:
-{{user_question}}
 """
+)
 
 
-def format_prompt(question, context):
+def clean_qa_context(raw: str) -> str:
     """
-    Formats the prompt according to RAG and history.
+    Transform a raw QA context string into a clean, structured list of Q&A:
 
     Args:
-        question (str): the question passed by the user
-        context (str): the context retrieved via RAG.
+        raw: string containing Q&A pairs separated by '---'.
 
     Returns:
-        str: formatted prompt.
+        A formatted string of "Q: ...\nA: ..." entries.
     """
+    blocks = [blk.strip() for blk in raw.split('---') if blk.strip()]
+    formatted: List[str] = []
 
-    inject = ""
-    if context != "":
-        inject = f"{clean_qa_style_context(context)}"
-    return f"""
-    Be concise.
-
-    Context:
-    ---
-    {inject}
-    ---
-    User question:
-    {question}
-    """
-
-
-def clean_qa_style_context(raw_context: str) -> str:
-    """
-    Cleans a Q&A-style context string and formats it as:
-
-    Context:
-    ---
-    Q: <question>
-    A: <answer>
-    ...
-    ---
-
-    Args:
-        raw_context (str): Context with Q&A pairs separated by '---'.
-
-    Returns:
-        str: Formatted and cleaned Q&A context.
-    """
-    qa_blocks = raw_context.strip().split("---")
-    formatted_pairs = []
-
-    for block in qa_blocks:
-        lines = block.strip().split("\n")
+    for block in blocks:
+        lines = [ln.strip() for ln in block.splitlines() if ln.strip()]
         if len(lines) < 2:
-            continue  # skip if not a proper Q&A pair
+            continue
 
-        # First non-empty line as question
-        question = next((line.strip() for line in lines if line.strip()), "")
-        # All subsequent non-question lines as answer
-        answer_lines = [
-            line.strip()
-            for line in lines[1:]
-            if line.strip()
-            and not re.match(
-                r"^(what|how|when|why|does|do|is|are|can|should| \
-                who|where|which|would|will|did)\b.*\?\s*$",
-                line.strip().lower(),
-            )
-        ]
+        question = lines[0]
+        answers = [ln for ln in lines[1:] if not QUESTION_PATTERN.match(ln)]
+        if not answers:
+            continue
 
-        if question and answer_lines:
-            answer = " ".join(answer_lines)
-            formatted_pairs.append(f"Q: {question}\nA: {answer}")
+        formatted.append(f"Q: {question}\nA: {' '.join(answers)}")
 
-    return "\n".join(formatted_pairs)
+    return "\n".join(formatted)
 
 
-def get_initial_chat_state():
+def format_prompt(question: str, context: str = "") -> str:
     """
-    Returns the initial chat history state for an LLM conversation.
+    Create the final prompt for the LLM, injecting cleaned context if available.
 
-    This includes a single system message that sets the assistant's behavior,
-    using the predefined `SYSTEM_PROMPT` which typically describes the assistant's role,
-    tone, and constraints (e.g., context-awareness, grounding rules).
+    Args:
+        question: The user's question.
+        context: Raw context string from RAG retrieval.
 
     Returns:
-        list[dict]: A list containing one system message dict with keys:
-            - 'role': "system"
-            - 'content': The value of SYSTEM_PROMPT
+        A single string prompt for the model.
+    """
+    context_section = f"{clean_qa_context(context)}" if context else ""
+
+    prompt_sections: List[str] = ["Given the context next and previous messages, reply to the user question or input. Be consice."]
+    prompt_sections.append("Context:")
+    prompt_sections.append("---")
+    if context_section:
+        prompt_sections.append(context_section)
+    prompt_sections.append("---")
+    prompt_sections.append(f"User question: {question}")
+
+    return "\n".join(prompt_sections)
+
+
+def get_initial_chat_state() -> List[Dict[str, str]]:
+    """
+    Initialize the conversation with the system prompt.
+
+    Returns:
+        A list containing a single system message dictionary.
     """
     return [{"role": "system", "content": SYSTEM_PROMPT}]

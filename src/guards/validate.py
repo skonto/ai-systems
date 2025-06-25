@@ -33,7 +33,6 @@ def is_garbage(text: str) -> bool:
     Determines whether the input text is considered garbage.
 
     A text is classified as garbage if it meets any of the following:
-    - It is shorter than 3 characters.
     - It consists entirely of non-alphanumeric characters (symbols, punctuation, etc.).
     - It contains excessive character repetition (e.g., "aaaaaaaaaaaa").
 
@@ -43,8 +42,6 @@ def is_garbage(text: str) -> bool:
     Returns:
         bool: True if the text is classified as garbage, False otherwise.
     """
-    if len(text) < 3:
-        return True
     if re.fullmatch(r"[\W_]+", text):
         return True
     if re.search(r"(.)\1{10,}", text):
@@ -84,7 +81,9 @@ def validate_input(text: str) -> str:
                     external guard validation.
     """
     if is_garbage(text) or not is_english(text):
-        raise ValueError("Your input is either garbage or not proper English")
+        print(is_garbage(text))
+        print(is_english(text))
+        raise ValueError("Your input text is not appropriate")
 
     try:
         validation_outcome = get_guards().validate(text)
