@@ -1,16 +1,16 @@
-# Deploying LLama localy with VLLM.
+# Deploying Llama localy with vLLM.
 
 Download the files from https://huggingface.co/unsloth/Meta-Llama-3.1-8B-Instruct-bnb-4bit/tree/main in a local folder.
-Note that if you want to test VLLM with a small model you can try `facebook/opt-125m`.
+Note that if you want to test vLLM with a small model you can try `facebook/opt-125m`.
 
 ```
-# Build the server with bnb support
+# Build the vLLM server with bnb support. We could derive directly from the official vLLM image but this is more controlled.
 docker build -t vllm-server .
 
 # Run it locally
 docker run --runtime nvidia -v $(pwd)/local-model:/model --gpus all -p 8000:8000 vllm-server /model --max-model-len 1024 --gpu-memory-utilization 0.8 --max-num-seqs 8
 
-# Grab the vllm id. VLLM supports one model anyway.
+# Grab the vLLM id. vLLM supports one model anyway.
 curl -X GET http://localhost:8000/v1/models
 {"object":"list","data":[{"id":"/model","object":"model","created":1751441887,"owned_by":"vllm","root":"/model","parent":null,"max_model_len":1024,"permission":[{"id":"modelperm-8e40ed8ee270417f8177fa93ff12c2fb","object":"model_permission","created":1751441887,"allow_create_engine":false,"allow_sampling":true,"allow_logprobs":true,"allow_search_indices":false,"allow_view":true,"allow_fine_tuning":false,"organization":"*","group":null,"is_blocking":false}]}]}
 
@@ -32,11 +32,11 @@ This is running on a 8GB card.
 
 Things to watch out for:
 
-- VLLM initially loads the model weights (~5.5GB) and then does a torch.compile that opimizes the graph that takes several seconds but also increases memory:
+- vLLM initially loads the model weights (~5.5GB) and then does a torch.compile that opimizes the graph that takes several seconds but also increases memory.
 
-- VLLM will build the KV Cache next that requires extra space depending on `max-model-len`. You can control that with `gpu-memory-utilization` but you need to make sure memory is available when warm up is done (see next).
+- vLLM will build the KV Cache next. KV Cache requires extra space depending on `max-model-len`. You can control that with `gpu-memory-utilization` but you need to make sure memory is available when warm up is done (see next).
 
-- VLLM will issue by default 256 requests in a parallel warm up session. If `max-num-seqs` is too high (default is 256) then a lot of memory blocks will be allocated.
+- vLLM will issue by default 256 requests in a parallel warm up session (warm up kernels etc). If `max-num-seqs` is too high (default is 256) then a lot of memory blocks will be allocated.
 
 Idle mode footprint:
 
