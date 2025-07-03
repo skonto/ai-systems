@@ -64,3 +64,24 @@ Wed Jul  2 10:43:05 2025
 
 ```
 
+
+# Monitoring 
+
+vLLM exposes several metrics (see https://docs.vllm.ai/en/v0.7.0/serving/metrics.html).
+There is also a Grafana dashboard that can be used with Prometheus (https://docs.vllm.ai/en/v0.7.3/getting_started/examples/prometheus_grafana.html).
+Using the load test script we run the same query multipel times:
+
+
+python vllm-load.py 
+Running load test with 10 users and 50 total requests...
+
+✅ Success: 50
+❌ Failed: 0
+📊 Avg Latency: 23.26 seconds
+
+The Grafana reported metrics are shown next:
+
+![g1](./g1.png)
+![g2](./g2.png)
+![g3](./g3.png)
+
