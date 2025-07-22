@@ -3,9 +3,9 @@ Sample agentic AI projects & reference implementations — Retrieval-Augmented G
 
 ## 📑 Contents
 
-- [Quickstart](#-quickstart)
+- [Quickstart](#quickstart)
 - [Architecture](#architecture)
-- [Components](#-components)
+- [Components](#components)
 - [Evaluation](#evaluation)
 - [Contributing](#contributing)
 - [License](#license)
@@ -43,12 +43,12 @@ Follow the instructions in https://www.comet.com/docs/opik/self-host/local_deplo
 The chatbot app is configured to bypass opik url input and work with opik running locally.
 
 
-## Interacting with the Q&A Assistant
+### Interacting with the Q&A Assistant
 
 ![ui](./ui.png)
 
 
-## Building the images
+### Building the images
 
 To build the images:
 
