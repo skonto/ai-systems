@@ -1,5 +1,5 @@
 # AI‑Systems 🚀
-Sample agentic AI projects & reference implementations — Retrieval-Augmented Generation (RAG), LangChain agents, evaluation pipelines, and more
+Sample agentic AI projects & reference implementations — Retrieval-Augmented Generation (RAG), agents, evaluation pipelines, and more.
 
 ## 📑 Contents
 
@@ -10,7 +10,7 @@ Sample agentic AI projects & reference implementations — Retrieval-Augmented G
 - [Contributing](#-contributing)
 - [License](#-license)
 
-## Quickstart
+## 🔧 Quickstart
 
 ```
 # Download QA data in txt format under some path eg. data/fantastic_charge
@@ -45,17 +45,22 @@ The chatbot app is configured to bypass opik url input and work with opik runnin
 
 ### Interacting with the Q&A Assistant
 
+Access the app at: http://localhost:8501
+
 ![ui](./ui.png)
 
 
 ### Building the images
+
+Under deployment you can find several images on how to run the LLMs used in this project.
+You can also use the vLLM setup for a production on premise setup.
 
 To build the images:
 
 ```
 docker build -t skonto/ollama:qa -f Dockerfile.ollama .
 
-docker build --no-cache  --progress=plain --secret "id=guard,src=$HOME/.guardrailsrc" . -t skonto/qa
+docker build --no-cache --progress=plain --secret "id=guard,src=$HOME/.guardrailsrc" . -t skonto/qa
 ```
 
 To run the images:
@@ -65,9 +70,6 @@ docker run --gpus all -p8080:11434 skonto/ollama:qa
 
 docker run -it --gpus all -e OLLAMA_HOST=localhost:8080 --net=host skonto/qa
 ```
-
-Access the app at: http://localhost:8501
-
 
 ## 🧠 Architecture
 

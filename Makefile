@@ -17,3 +17,6 @@ test:
 	uv run pytest -s -m integration
 
 validate: lint type-check
+
+run: 
+	uv run python -m streamlit run ./src/chatbot/app.py
