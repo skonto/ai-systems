@@ -231,7 +231,9 @@ class OllamaRag:
 
         docs = []
         for doc_id, doc_text, metadata in zip(
-            results["ids"], results["documents"], results["metadatas"]
+            results["ids"],
+            results.get("documents") or [],
+            results.get("metadatas") or [],
         ):
             docs.append({"id": doc_id, "document": doc_text, "metadata": metadata})
 
@@ -315,4 +317,4 @@ class OllamaRag:
             },
         )
 
-        return response
+        return response.model_dump()

@@ -31,7 +31,7 @@ if "messages" not in st.session_state:
 if "qas" not in st.session_state:
     st.session_state.qas = get_initial_chat_state()
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(
         description="Parse a db path from the command line."
     )
@@ -51,10 +51,10 @@ def main():
     st.title("Customer Support- Q&A")
     st.divider()
     path_logo = os.path.dirname(os.path.abspath(__file__)) + "/logo.png"
-    im = Image.open(path_logo)
-    im = im.resize((50, 50))
+    image_file = Image.open(path_logo)
+    image = image_file.resize((50, 50))
 
-    with st.chat_message("assistant", avatar=im):
+    with st.chat_message("assistant", avatar=image):
         st.write("Hello! How can I help?")
 
     user_input = st.chat_input("What would you like to ask today?")
@@ -64,7 +64,7 @@ def main():
             with st.chat_message("user"):
                 st.write(msg["user"])
         if "assistant" in msg:
-            with st.chat_message("assistant", avatar=im):
+            with st.chat_message("assistant", avatar=image):
                 st.write(msg["assistant"])
 
     if user_input:
@@ -82,7 +82,7 @@ def main():
 
             with st.chat_message("user"):
                 st.write(user_input)
-            with st.chat_message("assistant", avatar=im):
+            with st.chat_message("assistant", avatar=image):
                 out = str(response)
                 st.write(out)
 

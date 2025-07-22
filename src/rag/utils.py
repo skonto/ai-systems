@@ -7,6 +7,7 @@ from langchain_core.documents import Document
 from loguru import logger
 from sklearn.preprocessing import MinMaxScaler
 
+
 def build_langchain_bm25_retriever(docs: list, k: int = 5) -> Optional[BM25Retriever]:
     """
     Constructs a LangChain-compatible BM25 retriever from Chroma documents.

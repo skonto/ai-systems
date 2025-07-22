@@ -11,5 +11,5 @@ class Settings(BaseSettings):
         env_prefix="QA_APP_",
     )
 
-def get_settings():
+def get_settings() -> Settings:
     return Settings()

@@ -4,7 +4,7 @@ import os
 from rag import OllamaRag
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(
         description="Parse a file path from the command line."
     )
