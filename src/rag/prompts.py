@@ -1,12 +1,14 @@
 import re
-from typing import List, Dict
+from typing import Dict, List
 
 # Pre-compile regex to identify question lines
-QUESTION_PATTERN = re.compile(r"^(?:what|how|when|why|does|do|is|are|can|should|"
-                              r"who|where|which|would|will|did)\b.*\?\s*$", re.IGNORECASE)
+QUESTION_PATTERN = re.compile(
+    r"^(?:what|how|when|why|does|do|is|are|can|should|"
+    r"who|where|which|would|will|did)\b.*\?\s*$",
+    re.IGNORECASE,
+)
 
-SYSTEM_PROMPT = (
-    """
+SYSTEM_PROMPT = """
 You are a helpful, polite, and knowledgeable customer support assistant for a company that sells chargers
 and other electronic devices.
 
@@ -31,7 +33,6 @@ Tone guidelines:
 If the answer is not found in the context or previous interactions, respond with:
 "Sorry, I cannot answer that based on the available information."
 """
-)
 
 
 def clean_qa_context(raw: str) -> str:
@@ -44,7 +45,7 @@ def clean_qa_context(raw: str) -> str:
     Returns:
         A formatted string of "Q: ...\nA: ..." entries.
     """
-    blocks = [blk.strip() for blk in raw.split('---') if blk.strip()]
+    blocks = [blk.strip() for blk in raw.split("---") if blk.strip()]
     formatted: List[str] = []
 
     for block in blocks:
@@ -75,7 +76,9 @@ def format_prompt(question: str, context: str = "") -> str:
     """
     context_section = f"{clean_qa_context(context)}" if context else ""
 
-    prompt_sections: List[str] = ["Given the context next and previous messages, reply to the user question or input. Be consice."]
+    prompt_sections: List[str] = [
+        "Given the context next and previous messages, reply to the user question or input. Be consice."
+    ]
     prompt_sections.append("Context:")
     prompt_sections.append("---")
     if context_section:

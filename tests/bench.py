@@ -1,6 +1,7 @@
 import json
 import statistics
 import time
+from typing import Any, Optional, Tuple
 
 import requests
 
@@ -15,7 +16,7 @@ PROMPT = """Explain the concept of vector embeddings in natural language process
 Use simple language and provide a real-world example."""
 
 
-def get_response(prompt, model="mistral", warm_up=False):
+def get_response(prompt: str, model: str = "mistral", warm_up: bool = False) -> Tuple[Optional[Any], Optional[float], Optional[float]]:
     headers = {"Content-Type": "application/json"}
     payload = {
         "model": model,
@@ -42,7 +43,7 @@ def get_response(prompt, model="mistral", warm_up=False):
     response = requests.post(OLLAMA_URL, headers=headers, data=json.dumps(payload))
     end_time = time.time()
     if warm_up:
-        return
+        return None, None, None
 
     if response.status_code == 200:
         result = response.json()
@@ -51,25 +52,13 @@ def get_response(prompt, model="mistral", warm_up=False):
         word_count = len(output_text.strip().split())
         token_count = word_count  # Rough estimate: 1 word ≈ 1 token
         tokens_per_sec = token_count / duration
-
-        # print(f"\n🧠 Prompt:\n{prompt}\n")
-        # print(f"📤 Response:\n{output_text}\n")
-        # print(f"⏱️ Time taken: {duration:.2f} seconds")
-        # print(f"🔢 Tokens (approx): {token_count}")
-        # print(f"⚡ Tokens/sec: {tokens_per_sec:.2f}")
         return output_text, duration, tokens_per_sec
     else:
-        print("❌ Request failed:", response.status_code, response.text)
+        print("Request failed:", response.status_code, response.text)
         return None, None, None
 
 
 if __name__ == "__main__":
-    # for model in MODEL_NAME:
-    #     # warm up
-    #     get_response(PROMPT, model, True)
-
-    #     get_response(PROMPT, model, False)
-
     for model in MODEL_NAMES:
         print(f"\n🚀 Testing model: {model}")
         outputs = []
@@ -77,36 +66,39 @@ if __name__ == "__main__":
         tps_list = []
 
         # Warm-up
-        print("⏱️ Warming up...")
+        print("Warming up...")
         get_response(PROMPT, model)
 
         for i in range(RUNS_PER_MODEL):
-            print(f"🔁 Run {i + 1}/{RUNS_PER_MODEL}")
+            print(f"Run {i + 1}/{RUNS_PER_MODEL}")
             output, duration, tps = get_response(PROMPT, model)
             if output is None:
                 continue
             outputs.append(output)
-            durations.append(duration)
-            tps_list.append(tps)
+            if duration is not None:
+                durations.append(duration)
+            
+            if tps is not None:
+                tps_list.append(tps)
 
         # Check for consistency
         unique_outputs = set(outputs)
         outputs_consistent = len(unique_outputs) == 1
 
         # Report
-        print(f"\n📊 Results for model: {model}")
+        print(f"\nResults for model: {model}")
         print(
-            f"🧪 Outputs consistent across runs: {'✅ YES' if outputs_consistent else '❌ NO'}"
+            f"Outputs consistent across runs: {'YES' if outputs_consistent else 'NO'}"
         )
-        print(f"⏱️ Mean time: {statistics.mean(durations):.2f} sec")
+        print(f"⏱Mean time: {statistics.mean(durations):.2f} sec")
         print(
-            f"📈 Std deviation time: {statistics.stdev(durations):.2f} sec"
+            f"Std deviation time: {statistics.stdev(durations):.2f} sec"
             if len(durations) > 1
-            else "📈 Not enough data for std deviation"
+            else "Not enough data for std deviation"
         )
-        print(f"⚡ Mean tokens/sec: {statistics.mean(tps_list):.2f}")
+        print(f"Mean tokens/sec: {statistics.mean(tps_list):.2f}")
         print(
-            f"📉 Std deviation tokens/sec: {statistics.stdev(tps_list):.2f}"
+            f"Std deviation tokens/sec: {statistics.stdev(tps_list):.2f}"
             if len(tps_list) > 1
             else ""
         )

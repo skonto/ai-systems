@@ -10,7 +10,7 @@ PROMPT = """Explain the concept of vector embeddings in natural language process
 Use simple language and provide a real-world example."""
 
 
-def get_response(prompt):
+def get_response(prompt: str) -> None:
     headers = {"Content-Type": "application/json"}
     payload = {
         "model": "any",  # llama.cpp ignores this value
@@ -32,13 +32,13 @@ def get_response(prompt):
         token_count = word_count  # Approximate
         tokens_per_sec = token_count / duration
 
-        print(f"\n🧠 Prompt:\n{prompt}\n")
-        print(f"📤 Response:\n{output_text.strip()}\n")
-        print(f"⏱️ Time taken: {duration:.2f} seconds")
-        print(f"🔢 Tokens (approx): {token_count}")
-        print(f"⚡ Tokens/sec: {tokens_per_sec:.2f}")
+        print(f"\nPrompt:\n{prompt}\n")
+        print(f"Response:\n{output_text.strip()}\n")
+        print(f"Time taken: {duration:.2f} seconds")
+        print(f"Tokens (approx): {token_count}")
+        print(f"Tokens/sec: {tokens_per_sec:.2f}")
     else:
-        print("❌ Request failed:", response.status_code, response.text)
+        print("Request failed:", response.status_code, response.text)
 
 
 if __name__ == "__main__":

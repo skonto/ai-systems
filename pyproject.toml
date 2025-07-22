@@ -9,16 +9,10 @@ dependencies = [
     "chromadb>=0.5.23",
     "detoxify>=0.5.2",
     "guardrails-ai>=0.5.13",
-    #    "langchain-chroma>=0.1.4",
-    #    "langchain-core>=0.3.28",
-    #    "langchain-experimental>=0.3.4",
-    #    "langchain-ollama>=0.2.3",
-    #    "langchain>=0.3.13",
     "numpy>=1.26.4",
     "ollama>=0.4.4",
     "opik>=1.6.13",
     "ragas>=0.2.14",
-    #    "sentence-transformers>=3.3.1",
     "streamlit>=1.41.1",
     "statistics>=1.0.3.5",
     "langdetect>=1.0.9",
@@ -41,6 +35,8 @@ build-backend = "setuptools.build_meta"
 
 [dependency-groups]
 dev = [
+    "black>=25.1.0",
+    "mypy>=1.17.0",
     "pylint>=3.3.3",
     "pytest>=8.3.5",
     "ruff>=0.11.13",
@@ -53,3 +49,8 @@ fix = true
 
 [tool.ruff.lint.isort]
 known-third-party = ["ollama", "langchain_ollama", "langchain_chroma", "opik", "loguru"]
+
+[tool.pytest.ini_options]
+markers = [
+    "integration: mark a test as an integration test",
+]

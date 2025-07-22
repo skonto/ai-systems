@@ -1,6 +1,7 @@
+from pprint import pprint
+
 from langchain_community.vectorstores import Chroma
 from langchain_ollama import OllamaEmbeddings
-from pprint import pprint
 
 # Configure these paths
 PERSIST_DIR = "/tmp/ch_db"  # Path to your Chroma DB

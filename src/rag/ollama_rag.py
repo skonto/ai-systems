@@ -3,11 +3,12 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 from uuid import uuid4
 
-from chromadb.config import Settings
 import chromadb
 import ollama
+from chromadb.config import Settings
 from langchain_chroma import Chroma
 from langchain_core import documents
+from langchain_core.documents import Document
 from langchain_ollama import OllamaEmbeddings
 from loguru import logger
 from opik import opik_context, track
@@ -83,9 +84,14 @@ class OllamaRag:
         )
 
         # TODO: move to Milvus, elastic etc this is only for local
-        self.bm25 = build_langchain_bm25_retriever(self.get_all_documents_from_collection(self.collection_name, self.db_path), 5)
+        self.bm25 = build_langchain_bm25_retriever(
+            self.get_all_documents_from_collection(self.collection_name, self.db_path),
+            5,
+        )
 
-    def get_response(self, text: str, msgs: List[Dict[str, str]]) -> Tuple[str, List[str]]:
+    def get_response(
+        self, text: str, msgs: List[Dict[str, str]]
+    ) -> Tuple[str, List[str]]:
         """
         Generates a LLM response based on user input and retrieved document context.
 
@@ -97,7 +103,7 @@ class OllamaRag:
             str: The content of the model's generated response.
         """
         chunks = []
-        new_text = text 
+        new_text = text
         if self.needs_rewrite(text):
             new_text = self.rewrite_ambiguous_prompt(msgs, text)
 
@@ -115,8 +121,16 @@ class OllamaRag:
                 logger.debug(f"Chunk Score: {score}")
                 logger.debug(f"Chunk: {doc.page_content}\n-------\n")
                 chunks.append(doc.page_content)
-            fused_results = fuse_with_bm25(results, self.bm25, new_text, alpha=0.4)
-            retrieved_context = "".join(doc.page_content + "\n" for doc, _ in fused_results)
+            
+            fused_results: List[Tuple[Document, float]] = []
+            if self.bm25 is not None:
+                fused_results = fuse_with_bm25(results, self.bm25, new_text, alpha=0.4)
+            else:
+                fused_results = results
+
+            retrieved_context = "".join(
+                doc.page_content + "\n" for doc, _ in fused_results
+            )
 
         prompt = format_prompt(question=new_text, context=retrieved_context)
 
@@ -138,7 +152,6 @@ class OllamaRag:
         """
         ids = self.vector_store.get().get("ids", [])
         return len(ids) == 0
-
 
     def ingest_docs(self, file_path: str, db_path: str) -> None:
         """
@@ -168,7 +181,9 @@ class OllamaRag:
                 with open(txt_file, "r", encoding="utf-8") as f:
                     content = f.read()
 
-                chunks = [chunk.strip() for chunk in content.split("---") if chunk.strip()]
+                chunks = [
+                    chunk.strip() for chunk in content.split("---") if chunk.strip()
+                ]
                 docs = [documents.Document(page_content=chunk) for chunk in chunks]
                 ids = [str(uuid4()) for _ in docs]
 
@@ -191,7 +206,9 @@ class OllamaRag:
 
         return False
 
-    def get_all_documents_from_collection(self, collection_name: str, persist_directory: str):
+    def get_all_documents_from_collection(
+        self, collection_name: str, persist_directory: str
+    ) -> List[dict]:
         """
         Load all documents from a persisted Chroma collection using native chromadb client.
 
@@ -206,23 +223,21 @@ class OllamaRag:
 
         collection = client.get_collection(name=collection_name)
 
-        print(f"✅ Collection found: {collection.name}")
-        print(f"📦 Total documents: {collection.count()}")
+        print(f"Collection found: {collection.name}")
+        print(f"Total documents: {collection.count()}")
 
         # Now retrieve all documents (no filters, no includes needed for IDs)
-        results = collection.get(include=["documents", "metadatas"])
+        results = collection.get()
 
         docs = []
-        for doc_id, doc_text, metadata in zip(results['ids'], results['documents'], results['metadatas']):
-            docs.append({
-                'id': doc_id,
-                'document': doc_text,
-                'metadata': metadata
-            })
+        for doc_id, doc_text, metadata in zip(
+            results["ids"], results["documents"], results["metadatas"]
+        ):
+            docs.append({"id": doc_id, "document": doc_text, "metadata": metadata})
 
-        print(f"✅ Retrieved {len(docs)} documents.")
+        print(f"Retrieved {len(docs)} documents.")
         return docs
-            
+
     def rewrite_ambiguous_prompt(self, messages: list, new_user_input: str) -> str:
         """Rewrite user input using chat history to resolve ambiguity."""
         prompt = "You are a helpful assistant that rewrites ambiguous user questions based on chat history.\n"
@@ -234,10 +249,12 @@ class OllamaRag:
         prompt += f"\nAmbiguous user input: {new_user_input}\n"
         prompt += "Rewritten version:"
 
-        response = ollama.chat(model=self.model_name, messages=[{"role": "user", "content": prompt}])
+        response = ollama.chat(
+            model=self.model_name, messages=[{"role": "user", "content": prompt}]
+        )
         return response["message"]["content"].strip()
 
-    @track(tags=["ollama", "python-library"])
+    @track(tags=["ollama", "python-library"], project_name="qa")
     def ollama_llm_call(self, msgs: List[Dict[str, str]]) -> Dict[str, Any]:
         """
         Sends a chat prompt to the Ollama model and logs performance + usage metadata.
@@ -267,9 +284,14 @@ class OllamaRag:
         )
 
         required_keys = [
-            "model", "eval_duration", "load_duration",
-            "prompt_eval_duration", "prompt_eval_count",
-            "eval_count", "done", "done_reason"
+            "model",
+            "eval_duration",
+            "load_duration",
+            "prompt_eval_duration",
+            "prompt_eval_count",
+            "eval_count",
+            "done",
+            "done_reason",
         ]
         for key in required_keys:
             if key not in response:
@@ -288,8 +310,8 @@ class OllamaRag:
             usage={
                 "completion_tokens": response.get("eval_count", 0),
                 "prompt_tokens": response.get("prompt_eval_count", 0),
-                "total_tokens": response.get("eval_count", 0) + \
-                      response.get("prompt_eval_count", 0),
+                "total_tokens": response.get("eval_count", 0)
+                + response.get("prompt_eval_count", 0),
             },
         )
 

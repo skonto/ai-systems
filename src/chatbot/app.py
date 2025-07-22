@@ -31,7 +31,6 @@ if "messages" not in st.session_state:
 if "qas" not in st.session_state:
     st.session_state.qas = get_initial_chat_state()
 
-
 def main():
     parser = argparse.ArgumentParser(
         description="Parse a db path from the command line."
