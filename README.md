@@ -3,12 +3,12 @@ Sample agentic AI projects & reference implementations — Retrieval-Augmented G
 
 ## 📑 Contents
 
-- [Quickstart](##quickstart)
-- [Architecture](##architecture)
-- [Components](##components)
-- [Evaluation](##evaluation)
-- [Contributing](##contributing)
-- [License](##license)
+- [Quickstart](#-quickstart)
+- [Architecture](#-architecture)
+- [Components](#-components)
+- [Evaluation](#-evaluation)
+- [Contributing](#-contributing)
+- [License](#-license)
 
 ## Quickstart
 
