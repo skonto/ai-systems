@@ -11,8 +11,8 @@ from langchain_core import documents
 from langchain_core.documents import Document
 from langchain_ollama import OllamaEmbeddings
 from loguru import logger
-from opik import opik_context, track
 
+from observability import trace
 from rag.prompts import format_prompt
 from rag.utils import build_langchain_bm25_retriever, fuse_with_bm25
 
@@ -256,7 +256,7 @@ class OllamaRag:
         )
         return response["message"]["content"].strip()
 
-    @track(tags=["ollama", "python-library"], project_name="qa")
+    @trace(tracer="opik", tags=["qa"])
     def ollama_llm_call(self, msgs: List[Dict[str, str]]) -> Dict[str, Any]:
         """
         Sends a chat prompt to the Ollama model and logs performance + usage metadata.
@@ -282,38 +282,6 @@ class OllamaRag:
                 "seed": self.seed,
                 "top_k": self.top_k,
                 "num_predict": self.num_predict,
-            },
-        )
-
-        required_keys = [
-            "model",
-            "eval_duration",
-            "load_duration",
-            "prompt_eval_duration",
-            "prompt_eval_count",
-            "eval_count",
-            "done",
-            "done_reason",
-        ]
-        for key in required_keys:
-            if key not in response:
-                logger.warning(f"Key '{key}' missing in Ollama response")
-
-        opik_context.update_current_span(
-            metadata={
-                "model": response.get("model"),
-                "eval_duration": response.get("eval_duration"),
-                "load_duration": response.get("load_duration"),
-                "prompt_eval_duration": response.get("prompt_eval_duration"),
-                "prompt_eval_count": response.get("prompt_eval_count"),
-                "done": response.get("done"),
-                "done_reason": response.get("done_reason"),
-            },
-            usage={
-                "completion_tokens": response.get("eval_count", 0),
-                "prompt_tokens": response.get("prompt_eval_count", 0),
-                "total_tokens": response.get("eval_count", 0)
-                + response.get("prompt_eval_count", 0),
             },
         )
 

@@ -2,12 +2,12 @@ import argparse
 import os
 import sys
 
-import opik
 import streamlit as st
 from loguru import logger
 from PIL import Image
 
 from guards import validate_input
+from observability import setup_tracing
 from rag import OllamaRag, get_initial_chat_state
 
 if "logger_configured" not in st.session_state:
@@ -23,7 +23,7 @@ if "logger_configured" not in st.session_state:
 
     st.session_state.logger_configured = True
 
-opik.configure(use_local=True, automatic_approvals=True)
+setup_tracing()
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
