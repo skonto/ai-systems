@@ -81,9 +81,7 @@ The system consists of:
 
 The goal is to have a customizable architecture on top of the following rough diagram of the RAG pipeline:
 
-RAG (Retrieval-Augmented Generation) Pipeline
-==============================================
-
+```text
 ┌─────────────────┐    ┌──────────────────┐
 │  User Metadata  │    │   User Query     │
 │   (context,     │    │                  │
@@ -173,6 +171,7 @@ Data Flow Legend:
 ▼  = Data flow direction
 ┌─ = Component boundary
 ┤  = Internal component section
+```
 
 ## 📦 Components
 
