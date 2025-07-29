@@ -92,11 +92,11 @@ RAG (Retrieval-Augmented Generation) Pipeline
 │   permissions)  │    │                  │
 └─────────┬───────┘    └─────────┬────────┘
           │                      │
-          │              ┌───────▼────────┐
-          │              │ Query Sanitizer│
-          │              │ & Guardrails   │
-          │              │ (input filter) │
-          │              └───────┬────────┘
+          │              ┌───────▼─────────┐
+          │              │ Query Sanitizer │
+          │              │ & Guardrails    │
+          │              │ (input filter)  │
+          │              └───────┬─────────┘
           │                      │
           │                      ▼
           │              ┌───────────────────────┐
@@ -125,8 +125,8 @@ RAG (Retrieval-Augmented Generation) Pipeline
                                      │
                                      ▼
                          ┌───────────────────────┐
-                         │    Top-K Docs        │
-                         │   (best matches)     │
+                         │    Top-K Docs         │
+                         │   (best matches)      │
                          └───────────┬───────────┘
                                      │
                                      ▼
