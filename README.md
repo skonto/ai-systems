@@ -187,12 +187,6 @@ Data Flow Legend:
 ┌─ = Component boundary
 ┤  = Internal component section
 
-Data Flow Legend:
-─────────────────
-│  = Processing step/component
-▼  = Data flow direction
-┌─ = Component boundary
-┤  = Internal component section
 ```
 
 ## 📦 Components
