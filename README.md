@@ -82,6 +82,9 @@ The system consists of:
 The goal is to have a customizable architecture on top of the following rough diagram of the RAG pipeline:
 
 ```text
+RAG (Retrieval-Augmented Generation) Pipeline
+==============================================
+
 ┌─────────────────┐    ┌──────────────────┐
 │  User Metadata  │    │   User Query     │
 │   (context,     │    │                  │
@@ -153,6 +156,18 @@ The goal is to have a customizable architecture on top of the following rough di
                                      │
                                      ▼
                          ┌───────────────────────┐
+                         │  Sampling Techniques  │
+                         │                       │
+                         │ • Top-p (nucleus)     │
+                         │ • Top-k filtering     │
+                         │ • Temperature scaling │
+                         │ • Repetition penalty  │
+                         │ • Beam search         │
+                         │ • Greedy decoding     │
+                         └───────────┬───────────┘
+                                     │
+                                     ▼
+                         ┌───────────────────────┐
                          │  Output Guardrails    │
                          │ (safety filter,       │
                          │  content validation,  │
@@ -164,6 +179,13 @@ The goal is to have a customizable architecture on top of the following rough di
                          │   Final Response      │
                          │   (to user)           │
                          └───────────────────────┘
+
+Data Flow Legend:
+─────────────────
+│  = Processing step/component
+▼  = Data flow direction
+┌─ = Component boundary
+┤  = Internal component section
 
 Data Flow Legend:
 ─────────────────
